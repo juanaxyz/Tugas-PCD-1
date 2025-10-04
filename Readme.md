@@ -70,5 +70,5 @@ pip install -r requirement.txt
 
 ---
 
-**Tugas Praktikum Pengolahan Citra Digital**  
-Fakultas/Prodi: [Isi sesuai kebutuhan]
+**Tugas Pengolahan Citra Digital**  
+Jurusan Teknologi Informasi Fakultas Teknik Universitas Udayana
