@@ -2,17 +2,18 @@ from PIL import Image
 import math
 
 # Load gambar
-img = Image.open("./images/baymax(1).jpg")
+img = Image.open("./images/baymax_gray.jpg")
 px = img.load()
 
 
 def cek_tipe_gambar():
-    print(px[0, 0])
+    # cek tipe gambar RGB atau Grayscale
     try:
         r, g, b = px[0, 0]
-        print(r, g, b)
+        print("Gambar RGB")
         return "RGB"
     except TypeError:
+        print("Gambar Grayscale")
         return "L"
 
 
@@ -29,6 +30,7 @@ def tampilkan_gambar_asli():
 
 
 def save_gambar():
+    global latest_image
     if latest_image is not None:
         latest_image.save("./output/hasil.jpg")
         print("Gambar berhasil disimpan sebagai 'hasil.jpg'")
@@ -87,7 +89,8 @@ def pencerminan_x() -> Image:
 
     for x in range(img.width):
         for y in range(img.height):
-            xb = 2 * center - x
+            xb = int(round(2 * center - x))
+            xb = int(2 * center - x)
             px_new[x, y] = px[xb, y]
 
     canvas.show()  # image pencerminan
@@ -100,7 +103,7 @@ def pencerminan_y() -> Image:
 
     for x in range(img.width):
         for y in range(img.height):
-            yb = 2 * center - y
+            yb = int(2 * center - y)
             px_new[x, y] = px[x, yb]
 
     canvas.show()  # image pencerminan
@@ -175,7 +178,10 @@ def rotate(degree: int) -> Image:
 def crop(xL: int, xR: int, yT: int, yB: int):
     wb = xR - xL
     hb = yB - yT
-    canvas_crop = Image.new("RGB", [wb, hb], (255, 255, 255))
+    if mode == "RGB":
+        canvas_crop = Image.new("RGB", [wb, hb], (255, 255, 255))
+    else:
+        canvas_crop = Image.new("L", [wb, hb], (255))
     px_new = canvas_crop.load()
 
     for x in range(wb):
@@ -207,11 +213,16 @@ def affine(matrix, translasi=(0, 0)) -> Image:
             x_shift = x - cx
             y_shift = y - cy
             # Transformasi affine
-            xb = round(a * x_shift + b * y_shift + e) + cx
-            yb = round(c * x_shift + d * y_shift + f) + cy
+            xb = int(round(a * x_shift + b * y_shift + e) + cx)
+            yb = int(round(c * x_shift + d * y_shift + f) + cy)
 
-            # Pastikan koordinat tujuan berada dalam batas kanvas
-            if 0 <= xb < img.width and 0 <= yb < img.height:
+            # Pastikan koordinat sumber dan tujuan berada dalam batas kanvas
+            if (
+                0 <= xb < img.width
+                and 0 <= yb < img.height
+                and 0 <= x < img.width
+                and 0 <= y < img.height
+            ):
                 px_new[xb, yb] = px[x, y]
     canvas.show()
     return canvas
@@ -266,11 +277,14 @@ def rgb_to_grayscale():
 
     for y in range(img.height):
         for x in range(img.width):
-            r, g, b = px[x, y]
-            gray = hitung_nilai_gray(r, g, b)
+            if isinstance(px[x, y], tuple):
+                r, g, b = px[x, y]
+                gray = hitung_nilai_gray(r, g, b)
+            else:
+                gray = px[x, y]
             px_new[x, y] = gray
 
-    # canvas.show()
+    canvas.show()
     return canvas
 
 
@@ -278,12 +292,18 @@ def grayscale_to_biner():
     canvas_biner = Image.new("1", (img.width, img.height))
     px_new = canvas_biner.load()
 
-    T = 128  # threesold
+    T = 128  # threshold
 
     for x in range(img.width):
         for y in range(img.height):
-            r, g, b = px[x, y]
-            gray = hitung_nilai_gray(r, g, b)
+            pixel = px[x, y]
+            if isinstance(pixel, tuple):
+                # RGB image
+                r, g, b = pixel
+                gray = hitung_nilai_gray(r, g, b)
+            else:
+                # Grayscale image
+                gray = pixel
             if gray >= T:
                 px_new[x, y] = 255  # putih
             else:
@@ -298,9 +318,13 @@ def double_thresholding(T1: int, T2: int):
 
     for x in range(img.width):
         for y in range(img.height):
-            # print(px[x,y])
-            r, g, b = px[x, y]
-            gray = hitung_nilai_gray(r, g, b)
+            pixel = px[x, y]
+            if isinstance(px[x, y], tuple):
+                r, g, b = px[x, y]
+                gray = hitung_nilai_gray(r, g, b)
+            else:
+                gray = pixel
+
             if T1 <= gray <= T2:
                 # px_new[x, y] = 0  # black
                 px_new[x, y] = 255
@@ -317,8 +341,12 @@ def RGB_to_mbit(m: int):
 
     for y in range(img.height):
         for x in range(img.width):
-            r, g, b = px[x, y]
-            gray = hitung_nilai_gray(r, g, b)
+            pixel = px[x, y]
+            if isinstance(pixel, tuple):
+                r, g, b = pixel
+                gray = hitung_nilai_gray(r, g, b)
+            else:
+                gray = pixel
             p_baru = (2 ** (8 - m + 1)) * int(gray / 2 ** (8 - m + 1))
             px_new[x, y] = p_baru
 
@@ -365,6 +393,9 @@ def change_kontras(faktor: float):
     return canvas
 
 
+latest_image = None
+
+
 def negasi():
     px_new = canvas.load()
     for x in range(img.width):
@@ -382,8 +413,6 @@ def negasi():
     canvas.show()
     return canvas
 
-
-latest_image = None
 
 if __name__ == "__main__":
     # print resolusi gambar
