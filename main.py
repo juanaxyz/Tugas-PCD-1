@@ -1,8 +1,9 @@
 from PIL import Image
 import math
+import matplotlib.pyplot as plt
 
 # Load gambar
-img = Image.open("./images/baymax_gray.jpg")
+img = Image.open("./images/baymax.jpg")
 px = img.load()
 
 
@@ -393,9 +394,6 @@ def change_kontras(faktor: float):
     return canvas
 
 
-latest_image = None
-
-
 def negasi():
     px_new = canvas.load()
     for x in range(img.width):
@@ -412,6 +410,100 @@ def negasi():
                 px_new[x, y] = gray_baru
     canvas.show()
     return canvas
+
+
+def histogram_RGB():
+    hist_r = [0] * 256
+    hist_g = [0] * 256
+    hist_b = [0] * 256
+
+    # Loop semua pixel
+    for y in range(img.height):
+        for x in range(img.width):
+            r, g, b = px[x, y]
+            hist_r[r] += 1
+            hist_g[g] += 1
+            hist_b[b] += 1
+    # Plot hasil
+    plt.figure(figsize=(10, 4))
+
+    plt.subplot(131)
+    plt.bar(range(256), hist_r, color="red")
+    plt.title("Red Channel")
+
+    plt.subplot(132)
+    plt.bar(range(256), hist_g, color="green")
+    plt.title("Green Channel")
+
+    plt.subplot(133)
+    plt.bar(range(256), hist_b, color="blue")
+    plt.title("Blue Channel")
+
+    plt.tight_layout()
+    plt.show()
+
+
+def histogram_gray():
+    hist_gray = [0] * 256
+
+    for x in range(img.width):
+        for y in range(img.height):
+            hist_gray[px[x, y]] += 1
+
+    plt.figure(figsize=(6, 4))
+    plt.subplot(111)
+    plt.bar(range(256), hist_gray, color="gray")
+    plt.title("Histogram Grayscale")
+
+    plt.tight_layout()
+    plt.show()
+    return hist_gray
+
+
+def histogram_equalization():
+    """
+    Melakukan ekualisasi histogram pada gambar grayscale.
+    Jika gambar RGB, otomatis dikonversi ke grayscale dulu.
+    """
+    # Konversi ke grayscale jika perlu
+    if mode == "RGB":
+        gray_img = rgb_to_grayscale()
+        px_gray = gray_img.load()
+    else:
+        gray_img = img.copy()
+        px_gray = gray_img.load()
+
+    # Ubah ke grayscale
+    w, h = gray_img.size
+    total_pixels = w * h
+    k = 8  # gambar 8-bit (0–255)
+
+    # 1. Hitung histogram
+    hist = [0] * 256
+    for y in range(h):
+        for x in range(w):
+            hist[px_gray[x, y]] += 1
+
+    # 2. Hitung CDF
+    cdf = [0] * 256
+    cdf[0] = hist[0]
+    for i in range(1, 256):
+        cdf[i] = cdf[i - 1] + hist[i]
+
+    # 3. Mapping pakai rumus
+    mapping = [0] * 256
+    for i in range(256):
+        mapping[i] = round(cdf[i] * (2**k - 1) / total_pixels)
+
+    # 4. Buat gambar baru dengan intensitas hasil equalization
+    new_img = Image.new("L", (w, h))
+    new_pixels = new_img.load()
+    for y in range(h):
+        for x in range(w):
+            new_pixels[x, y] = mapping[px_gray[x, y]]
+
+    new_img.show()
+    return new_img
 
 
 if __name__ == "__main__":
@@ -437,6 +529,9 @@ if __name__ == "__main__":
         print("14. Ubah Brightness")
         print("15. Ubah Kontras")
         print("16. Negasi")
+        print("17. Histogram RGB")
+        print("18. Histogram Grayscale")
+        print("19. Ekualisasi Histogram")
         print("98. Save Gambar Terbaru")
         print("99. Tampilkan Gambar Asli")
         print("0. Keluar")
@@ -521,6 +616,18 @@ if __name__ == "__main__":
                 latest_image = change_kontras(f)
             case "16":
                 latest_image = negasi()
+            case "17":
+                if mode == "RGB":
+                    histogram_RGB()
+                else:
+                    print("Gambar Bukan RGB")
+            case "18":
+                if mode == "RGB":
+                    print("Gambar RGB")
+                else:
+                    histogram_gray()
+            case "19":
+                latest_image = histogram_equalization()
             case "98":
                 save_gambar()
             case "99":
