@@ -2,32 +2,10 @@ from PIL import Image
 import math
 import matplotlib.pyplot as plt
 
-
-# def cek_tipe_gambar():
-#     # cek tipe gambar RGB atau Grayscale
-#     try:
-#         r, g, b = px[0, 0]
-#         # print("Gambar RGB")
-#         return "RGB"
-#     except TypeError:
-#         # print("Gambar Grayscale")
-#         return "L"
-
-
-# image_type = cek_tipe_gambar()
-# if image_type == "RGB":
-#     canvas = Image.new("RGB", (img.width, img.height), (255, 255, 255))
-# else:
-#     canvas = Image.new("L", (img.width, img.height), 255)
-
-
-# def tampilkan_gambar_asli():
-#     img.show(title="Gambar Asli")
-#     return img
+latest_image = None
 
 
 def save_gambar():
-    global latest_image
     if latest_image is not None:
         latest_image.save("./output/hasil.jpg")
         print("Gambar berhasil disimpan sebagai 'hasil.jpg'")
@@ -167,7 +145,7 @@ def rotate(image_input: Image) -> Image:
     w_orig, h_orig = img.size
     cx_orig, cy_orig = w_orig / 2, h_orig / 2
 
-    # Menghitung ukuran bounding box (kanvas baru) yang diperlukan
+    # Menghitung ukuran kanvas baru
     wb = int(abs(w_orig * math.cos(theta)) + abs(h_orig * math.sin(theta)))
     hb = int(abs(w_orig * math.sin(theta)) + abs(h_orig * math.cos(theta)))
 
@@ -328,7 +306,7 @@ def transformasi_affine(image_path: Image):
 
 def ripple(image_input: Image) -> Image:
     """
-    Efek ripple manual sesuai rumus:
+    Efek ripple sesuai rumus:
     x = x' + ax * sin(2πy'/Tx)
     y = y' + ay * sin(2πx'/Ty)
 
@@ -384,7 +362,8 @@ def rgb_to_grayscale(image_input: Image) -> Image:
 
     for y in range(img.height):
         for x in range(img.width):
-            if isinstance(px[x, y], tuple):
+            if image_type == "RGB":
+                # if isinstance(px[x, y], tuple):
                 r, g, b = px[x, y]
                 gray = hitung_nilai_gray(r, g, b)
             else:
@@ -605,6 +584,7 @@ def histogram_gray(image_input: Image):
 
     plt.tight_layout()
     plt.show()
+
     return hist_gray
 
 
@@ -622,7 +602,7 @@ def histogram_equalization(image_input: Image) -> Image:
         gray_img = img.copy()
         px_gray = gray_img.load()
 
-    # Ubah ke grayscale
+    # px_gray = gray_img.load()
     w, h = gray_img.size
     total_pixels = w * h
     k = 8  # gambar 8-bit (0–255)
@@ -651,15 +631,30 @@ def histogram_equalization(image_input: Image) -> Image:
         for x in range(w):
             new_pixels[x, y] = mapping[px_gray[x, y]]
 
-    plt.figure(figsize=(6, 4))
-    plt.subplot(111)
-    plt.bar(range(256), hist, color="gray")
-    plt.title("Histogram Grayscale")
+    # ✅ Hitung histogram BARU untuk perbandingan
+    hist_new = [0] * 256
+    for y in range(h):
+        for x in range(w):
+            hist_new[new_pixels[x, y]] += 1
+
+    # Plot perbandingan histogram
+    plt.figure(figsize=(12, 4))
+
+    plt.subplot(121)
+    plt.bar(range(256), hist, color="gray", alpha=0.7)
+    plt.title("Histogram Sebelum Equalization")
+    plt.xlabel("Intensitas")
+    plt.ylabel("Frekuensi")
+
+    plt.subplot(122)
+    plt.bar(range(256), hist_new, color="blue", alpha=0.7)
+    plt.title("Histogram Setelah Equalization")
+    plt.xlabel("Intensitas")
+    plt.ylabel("Frekuensi")
 
     plt.tight_layout()
     plt.show()
 
-    # new_img.show()
     return new_img
 
 
@@ -683,7 +678,7 @@ if __name__ == "__main__":
         print("5. Pencerminan Kombinasi")
         print("6. Rotasi")
         print("7. Crop")
-        print("8. Affine Transformasi (Rotasi)")
+        print("8. Affine Transformasi")
         print("9. Ripple")
         print("10. RGB ke Grayscale")
         print("11. Grayscale ke Biner")
@@ -756,6 +751,11 @@ if __name__ == "__main__":
             case "19":
                 latest_image = histogram_equalization(image_path)
                 latest_image.show()
+            case "98":
+                save_gambar()
+            case "99":
+                img = Image.open(image_path)
+                img.show()
             case "0":
                 print("Keluar dari program.")
                 break
